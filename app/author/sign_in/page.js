@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import toast from "react-hot-toast";
 
-import { signInAuthor } from "@/utils/auth/authorApi"; // Ensure this is correctly set up
+import { signInAuthor } from "@/utils/auth/authorApi";
 import ReCAPTCHA from "react-google-recaptcha";
 
 const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
@@ -31,14 +31,17 @@ const SignIn = () => {
       const author = await signInAuthor(email, password, captchaToken);
       console.log("Author Sign-in Data:", author);
 
-      if (author.status.code === 202 && author.status.requires_verification == true) {
-        router.push("/auth/mfa/verify")
+      if (
+        author.status.code === 202 &&
+        author.status.requires_verification == true
+      ) {
+        router.push("/auth/mfa/verify");
       }
 
       if (author?.data?.id) {
         localStorage.setItem("authorInfo", JSON.stringify(author.data));
         router.push(`/dashboard/author/${author.data.id}`);
-        toast.success("Logged in successfully")
+        toast.success("Logged in successfully");
       }
     } catch (error) {
       toast.error(
@@ -52,15 +55,31 @@ const SignIn = () => {
 
   const handleLoginWithGoogle = () => {
     setGoogleLoading(true);
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/authors/auth/google_oauth2`;
+    localStorage.setItem("oauth_redirect", window.location.href);
+
+    window.location.href = `http://localhost:3000/api/v1/authors/auth/google_oauth2`;
   };
 
-  useEffect(() => {    
+  useEffect(() => {
     if (recaptchaRef.current) {
       recaptchaRef.current.reset();
-      setCaptchaToken(""); 
+      setCaptchaToken("");
     }
   }, [email, password]);
+  
+  useEffect(() => {
+    // Check for OAuth errors or success in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get("error");
+
+    if (error === "oauth_failed") {
+      toast.error("Google sign-in failed. Please try again.");
+      setGoogleLoading(false);
+    } else if (error) {
+      toast.error(`Authentication error: ${error}`);
+      setGoogleLoading(false);
+    }
+  }, []);
 
   return (
     <main className="w-full mb-9 px-4 sm:px-0">

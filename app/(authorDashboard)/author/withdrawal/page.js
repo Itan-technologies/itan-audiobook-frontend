@@ -1,20 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { api } from "@/utils/auth/authorApi";
+
 import { Plus, Wallet } from "lucide-react";
 
-/**
- * Helper for auth header - tweak as you like
- * (e.g. pull token from cookies / context instead)
- */
+import { api } from "@/utils/auth/authorApi";
+import { getPaymentSummary } from "@/utils/payment";
+
 
 export default function WalletPage() {
   // ──────────────────────────────────────────────────────────────────────
   const [showModal, setShowModal] = useState(false);
 
-  /** BANK LIST */
   const [banks, setBanks] = useState([]);
+  const [balance, setBalance] = useState(0)
 
   /** FORM DATA */
   const [bankCode, setBankCode] = useState("");
@@ -32,7 +31,20 @@ export default function WalletPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  /* ── Fetch bank list when modal opens ─────────────────────────────── */
+  
+useEffect(() => {
+  const fetchBalance = async () => {
+    try {
+      const data = await getPaymentSummary();
+      setBalance(data?.earnings_summary || 0);
+    } catch (err) {
+      console.error("Failed to fetch balance:", err);
+    }
+  };
+
+  fetchBalance();
+}, []);
+
   useEffect(() => {
     if (!showModal) return;
 
@@ -167,17 +179,20 @@ export default function WalletPage() {
       <div className="w-full max-w-md rounded-xl border-4 border-orange-600 bg-gradient-to-r from-orange-300 to-orange-500 p-6 text-black shadow-md">
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <p className="text-sm font-bold">itan</p>
             <p className="text-lg font-semibold">Available Balance</p>
           </div>
-          <p className="text-sm">{new Date().toLocaleDateString()}</p>
+          <div className="flex flex-col relative">
+            {/* <p className="text-sm">{new Date().toLocaleDateString()}</p> */}
+            <p className="text-sm">Pending Balance</p>
+            <p className="text-sm absolute right-0 top-8">${balance.pending_earnings}</p>
+          </div>
         </div>
 
-        <p className="mb-8 text-4xl font-bold">$0</p>
+        <p className="mb-8 text-4xl font-bold">${balance.approved_earnings}</p>
 
-        <div className="flex items-center justify-between text-sm text-black/80">
-          <p>Chimdindu Ezulike</p>
-          <p>itan wallet</p>
+        <div className="flex items-center justify-between text-sm text-black/80 border-0 border-b-2 border-gray-600">
+          <p>Total wallet balance</p>
+          <p>${balance.total}</p>
         </div>
       </div>
 
